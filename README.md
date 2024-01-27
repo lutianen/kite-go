@@ -14,9 +14,9 @@ LeetCode in Go.
 
 | No.    |  Title  |  Solution  |  Acceptance |
 |:------:|:--------|:----------:|:-----------:|
-|001|[Two Sum](https://leetcode.cn/problems/two-sum/description/)|[Go](./LeetCode/hot100/two-sum/two-sum.go)|100%|
-|002|[Add Two Numbers](https://leetcode.cn/problems/add-two-numbers/description/)|[Go](./LeetCode/hot100/add-two-numbers/add-two-numbers.go)|100%|
-|003|[Longest Substring Without Repeating Characters](https://leetcode.cn/problems/longest-substring-without-repeating-characters/description/)|[Go](./LeetCode/hot100/longest-substring-without-repeating-characters/longest-substring-without-repeating-characters.go)|100%|
+|001|[Two Sum](https://leetcode.cn/problems/two-sum/description/)|[Go](./LeetCode/hot100/001.two-sum/two-sum.go)|100%|
+|002|[Add Two Numbers](https://leetcode.cn/problems/add-two-numbers/description/)|[Go](./LeetCode/hot100/002.add-two-numbers/add-two-numbers.go)|100%|
+|003|[Longest Substring Without Repeating Characters](https://leetcode.cn/problems/longest-substring-without-repeating-characters/description/)|[Go](./LeetCode/hot100/003.longest-substring-without-repeating-characters/longest-substring-without-repeating-characters.go)|100%|
 
 ## Thanks
 
