@@ -22,5 +22,3 @@ LeetCode in Go.
 ## Thanks
 
 **Thanks for your Star！**
-
-[![Stargazers over time](https://starchart.cc/lutianen/kite-go.svg)](https://starchart.cc/lutianen/kite-go)
