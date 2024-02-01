@@ -18,6 +18,7 @@ LeetCode in Go.
 |002|[Add Two Numbers](https://leetcode.cn/problems/add-two-numbers/description/)|[Go](./LeetCode/hot100/002.add-two-numbers/add-two-numbers.go)|100%|
 |003|[Longest Substring Without Repeating Characters](https://leetcode.cn/problems/longest-substring-without-repeating-characters/description/)|[Go](./LeetCode/hot100/003.longest-substring-without-repeating-characters/longest-substring-without-repeating-characters.go)|100%|
 |004|[Median of Two Sorted Arrays](https://leetcode.cn/problems/median-of-two-sorted-arrays/)|[Go](./LeetCode/hot100/004.find-median-sorted-arrays/find-median-sorted-arrays.go)|100%|
+|005|[Longest Palindromic Substring](https://leetcode.cn/problems/longest-palindromic-substring/)|[Go](./LeetCode/hot100/005.longest-palindromic-substring/longest-palindromic-substring.go)|100%|
 
 ## Thanks
 
