@@ -1346,4 +1346,22 @@ tianen@arch~ $ go install github.com/derekparker/delve/cmd/dlv@latest
 dlv version
 ```
 
+## Go 编译与反编译
+
+### Go 编译过程
+
+词法分析（Lexical Analysis）-> 语法分析（Syntax Analysis） -> 语义分析（Semantic Analysis） -> 中间代码生成（Intermdeiate Code Generation）-> 中间代码优化（Intermediate Code Optimization）->机器代码生成（Machine Code Generation）
+
+- 编译生成机器码，其中所有函数地址都是从0开始，每条指令都是相对于第一条指令的偏移
+
+- 编译源文件得到机器码后，需要将二进制机器码进行链接，也就是进行**虚拟地址重定位（Relocation）**，使得所有指令都具有全局唯一的地址
+
+### Go 编译工具
+
+`go tool compile -S xxx.go`，该命令会将源文件生成`.o`目标文件
+
+### Go 反汇编工具
+
+`go tool objdump`
+
 ## Go Standard Library
