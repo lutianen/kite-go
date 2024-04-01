@@ -234,6 +234,15 @@ Go语言结构体（Struct）从本质上讲是一种自定义的数据类型，
 > \* 由语言或者框架层调度
 > \* 更小的栈空间，允许创建大量实例（百万级别）
 
+|                     | Goroutine                                              | Thread                                                       |
+| ------------------- | ------------------------------------------------------ | ------------------------------------------------------------ |
+| 内存占用            | 2KB -> 1GB                                             | 从 8K 开始，服务端上很多是 8M，调用过多会导致 stack overflow |
+| Context Switch 耗时 | 几十 ns 级                                             | 1 - 2 $\mu$s                                                 |
+| 有谁管理            | Go runtime                                             | 操作系统                                                     |
+| 通信方式            | CSP/传统共享内存                                       | 传统共享内存                                                 |
+| ID                  | 有，但用户无法访问                                     | 有                                                           |
+| 抢占                | Go 1.13前，需要主动让出<br />G0 1.14开始，可由信号中断 | 内核抢占                                                     |
+
 ### GPM 调度模型
 
 Go语言的线程模型就是一种特殊的两级线程模型（GPM调度模型）
@@ -1074,20 +1083,19 @@ package main
 import "fmt"
 
 func main() {
-    fmt.Println("Hello KiteLu")
+    fmt.Println("Hello Tynnen")
 }
 ```
 
 编译命令：`go build -x xxx.go`
 
-​	编译：将**文本文件**编译成**目标文件(`., .a`)**
+​	编译：将**文本文件**编译成**目标文件(`.o, .a`)**
 
 ​	链接：将**目标文件**合并为**可执行文件**
 
 ```bash
-go build -x test.go
+$ go build -x -o ./bin/t-01 ./temp/t-01/main.go
 
-➜  test go build -x ./test.go                                                                                                                 
 WORK=/tmp/go-build1973027835
 mkdir -p $WORK/b001/
 cat >/tmp/go-build1973027835/b001/importcfg << 'EOF' # internal
@@ -1159,15 +1167,25 @@ rm -r $WORK/b001/
 查看可执行文件类型：`file ./test.go`
 
 ```bash
-➜  test file ./test
+$ file ./test
 ./test: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, Go BuildID=kADphbtisEk6HeZBwQCw/-lghz6BJwbJXKjRgWrNa/CKe8nNhceRf9tUu_VUS2/fr8M8xjUO_oYsz4Kvb_k, with 
 debug_info, not stripped
 ```
 
+> Linux 的可执行文件ELF(Executable and Linkable Format)，由**ELF header**、**Section header**和**Section**组成
+>
+> <img src="https://github.com/corkami/pics/blob/28cb0226093ed57b348723bc473cea0162dad366/binary/elf101/elf101.pdf" alt="Golang-Executable" style="zoom:150%;" />
+>
+> 以Linux为例，操作系统执行可执行文件的步骤：
+>
+> 1. 解析 ELF Header
+> 2. 加载文件内容至内存
+> 3. 从 Entry point 处开始执行代码
+
 查看ELF文件的Header -> 程序执行入口`Entry point address` ：
 
 ```bash
-➜  test readelf -h ./test
+$ readelf -h ./test
 ELF Header:
   Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 
   Class:                             ELF64
@@ -1194,11 +1212,138 @@ Go的可执行文件与OS Kernel的联系：
 
 <img src="https://raw.githubusercontent.com/lutianen/PicBed/master/Golang-Executable.svg" alt="Golang-Executable" style="zoom:150%;" />
 
-Go 的Runtime
+## Go 的Runtime
+
+> Runtime describes software/instructions that are executed while your program is running, especially those instructions that you did not write explicitly, but are necessary for the proper exection of your code.
+>
+> Low-loevel languages like C have very small (if any) runtime. More complex languages like Object-C, which allows for dynamic message passing, have a mush more extensive runtime.
+>
+> **可以认为runtime是为了实现额外的功能，而在程序运行时自动加载/运行的一些模块**
 
 - Scheduler：调度器管理所有的G, M, P, 在后台实行调度循环；最核心，负责串联所有的 runtime 流程
 - Netpoll：网络轮询负责管理网络FD相关的读写、就绪事件
 - Memory：当代码需要内存时，负责内存分配工作
 - Garbage：当内存不再需要时，负责回收内存
+
+### 调度组件与调度循环
+
+**Go的调度本质上是一个生产-消费流程**
+
+![Runtime-GMP](https://raw.githubusercontent.com/lutianen/PicBed/master/Runtime-GMP.svg)
+
+#### 调度组件
+
+![Go-GMP](https://raw.githubusercontent.com/lutianen/PicBed/master/Go-GMP.svg)
+
+#### goroutine 生产端
+
+![Go-GMP-生产端](https://raw.githubusercontent.com/lutianen/PicBed/master/Go-GMP-生产端.svg)
+
+#### goroutine 消费端
+
+![Go-GMP-消费端](https://raw.githubusercontent.com/lutianen/PicBed/master/Go-GMP-消费端.svg)
+
+> G：goroutine，计算任务，由需要执行的代码和其上下文组成，上下文包括：当前代码位置，栈顶、栈底位置，状态等
+>
+> M：machine，系统线程，执行实体，想要在CPU上执行代码，必须有线程，与C语言中的线程相同，通过系统调用`clone`来创建
+>
+> P：processor，虚拟处理器，M必须获得P才能执行代码，否则必须陷入休眠（后台监控线程除外）。可以理解为一个 token，拥有这个 token，才能在物理CPU核心上执行的权力
+
+#### goroutine 上下文切换成本
+
+<img src="../../../.config/Typora/typora-user-images/image-20240331203433353.png" alt="image-20240331203433353" style="zoom:80%;" />
+
+gobuf 描述了一个 goroutine 所有现场，当从一个g切换到另一个g时，只需要把这几个现场字段保存下来，再把g往队列一扔，m就可以执行其他g了，无需进入内核态。
+
+#### GMP常见问题
+
+- runtime中可以接管的阻塞是通过`gopark`/`goparkunlock`挂起和`goready`恢复，因此只要找到`runtime.gopark`的调用方，就可以知道在哪些地方会被runtime接管了。
+
+### 处理阻塞
+
+当发生以下情况时，线程发生阻塞：
+
+```go
+// channel send:
+var ch = make(chan int)
+ch <- 1
+```
+
+```go
+// channel recv:
+var ch = make(chan int)
+<- ch
+```
+
+```go
+// net write
+var c net.Conn
+var buf = []byte("Hello")
+// send buffer full, write blocked
+n, err := c.Write(buf)
+```
+
+```go
+// net read
+var c net.Conn
+var buf = make([]byte, 1024)
+// data not ready, block
+n, err := c.Read(buf)
+```
+
+```go
+time.Sleep(time.Hour)
+```
+
+```go
+var (
+  ch1 = make(chan int)
+  ch2 = make(chan int)
+)
+
+// no case ready, block
+select {
+case <- ch1:
+  println("ch1 ready")
+case <- ch2:
+  println("ch1 ready")	  
+}
+```
+
+```go
+var l sync.RWMutex
+// somebody already grab the lock, blocked
+l.Lock()
+```
+
+以上情况不会阻塞调度循环，而是会把goroutine挂起。而挂起指的是，让g先进入某个数据结构，待ready后再继续执行。
+
+不会占用线程
+
+goroutine挂起时，线程会进入schedule，继续消费队列，执行其他的g。
+
+> 但并不是所有的阻塞可以被runtime接管，例如`syscall`、`cgo`，因为执行C代码或阻塞在`syscall`时，必须占用一个物理线程M
+
+#### sysmon
+
+system monitor，高优先级，在专有线程中执行，不需要绑定P就可以执行。
+
+功能（负责）如下：
+
+- 检查是否已经没有活动线程，若是则程序崩溃
+- 轮询 netpoll
+- 剥离在 syscall 上阻塞的M的P
+- 发信号，抢占已经执行时间过长的G
+
+## delve
+
+delve,简称dlv是go语言的最常用的调试器
+
+```bash
+# 安装
+tianen@arch~ $ go install github.com/derekparker/delve/cmd/dlv@latest
+# 验证
+dlv version
+```
 
 ## Go Standard Library
