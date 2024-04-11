@@ -41,6 +41,8 @@ func (x *Int32) Add(delta int32) (new int32) { return AddInt32(&x.v, delta) }
 
     > `for` 和 `atomic` 配对来实现无锁算法；`CAS` 可以称为乐观锁。
 
+---
+
 ### `semaphore`
 
 信号量，是锁实现的基础，也是所有同步原语的基础设施
@@ -458,3 +460,39 @@ func (m *Map) Range(f func(key, value any) bool) {...}
 
     > * 采用 `Map` + `Mutex` 的设计时，CPU 多核扩展性较差
     > * `sync.Map` 采用 read 和 dirty 设计，在读多写少的情况下，基本上不需要加锁
+
+## 常见并发 BUG
+
+1. 死锁
+
+    **RWR 死锁**
+
+    **循环等待死锁**
+2. Map concurrent writes / reads.
+3. Channel 关闭 panic
+
+    Channel closeing principe:
+      1. M receivers, one sender, the sender says "no more sends" by closing the data channel
+      2. One receiver, N senders, the only receiver says "please stop sending more" by closing an additional signal channel
+      3. M receivers, N senders, any one of them says "let's end the game" by notifying a moderator to close an additional signal channel
+4. channel 阻塞，导致 goroutine 泄露
+
+    ```go
+    func finisheReq(timeout time.Druation) r ob {
+        - ch := make(chan ob)
+        + ch := make(chan ob, 1)
+        go func() {
+            result := fn()
+            chan <- result // block
+        }()
+
+        select {
+            case result = <- ch:
+                return result
+            case <- time.After(timeout):
+                return nil
+        }
+    }
+    ```
+
+5. `sync.Waitgroup` 使用不当(提前`Wait()`)，永久阻塞
