@@ -36,7 +36,10 @@
 - `slice` 切片:
 - `map` 字典:
 - `pointer` 指针:
-- `channel` 通道:
+- `channel` 管道:
+
+[channel某些细节](https://speakerdeck.com/kavya719/understanding-channels)
+
 - `struct` 结构:
 
     为命名类型定义方法的语法格式：
@@ -586,6 +589,10 @@ PASS
 ok      github.com/lutianen/gopl/src/testing/word       1.312s
 ```
 
+> NOTE: 单次 Benchmark 的测试结果可能不准确，需要进行 benchstat
+>
+> Reference：[benchstat](https://pkg.go.dev/golang.org/x/perf/cmd/benchstat)
+
 #### 剖析
 
 当我们想仔细观察程序的性能时，最好的方法是性能剖析(profiling).
@@ -1077,7 +1084,7 @@ for input.Scan() { // 每次调用 input.Scan() 读取下一行，并移除行�
 
 ## Golang 编译输出可执行文件
 
-```go	
+```go 
 package main
 
 import "fmt"
@@ -1089,9 +1096,9 @@ func main() {
 
 编译命令：`go build -x xxx.go`
 
-​	编译：将**文本文件**编译成**目标文件(`.o, .a`)**
+​ 编译：将**文本文件**编译成**目标文件(`.o, .a`)**
 
-​	链接：将**目标文件**合并为**可执行文件**
+​ 链接：将**目标文件**合并为**可执行文件**
 
 ```bash
 $ go build -x -o ./bin/t-01 ./temp/t-01/main.go
@@ -1306,7 +1313,7 @@ select {
 case <- ch1:
   println("ch1 ready")
 case <- ch2:
-  println("ch1 ready")	  
+  println("ch1 ready")   
 }
 ```
 
@@ -1363,5 +1370,11 @@ dlv version
 ### Go 反汇编工具
 
 `go tool objdump`
+
+> [C语言调用规约](https://github.com/cch123/llp-trans/blob/master/part3/translation-details/function-calling-sequence/calling-convention.md)，采用的是**寄存器**与**栈**混合使用的方式
+>
+> 据说，Go 1.17的调用规约中会有用上寄存器的新方式
+>
+> Go 语言中的参数和返回值都是由 Caller 提供空间
 
 ## Go Standard Library
