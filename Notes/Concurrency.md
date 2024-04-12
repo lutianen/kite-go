@@ -496,3 +496,73 @@ func (m *Map) Range(f func(key, value any) bool) {...}
     ```
 
 5. `sync.Waitgroup` 使用不当(提前`Wait()`)，永久阻塞
+
+## 内存模型
+
+内存模型描述了线程（goroutine）通过内存的交互，以及对数据的共享使用通过内存的交互，以及对数据的共享使用.
+
+Go 内存模型，定义对同一个变量，如何保证在一个 goroutine 对此变量读的时候，能够观察到其他 goroutine 对此变量的写。
+
+修改一个同时被多个 goroutine 并发访问的变量时，需要串行化访问，Go 可以通过 channel 或其他同步原语实现串行化访问。
+
+### Memory Order Guarantee
+
+单个 goroutine 内，读写执行的顺序和程序定义顺序一致，乱序执行不影响程序的行为。
+
+**happen-before**：内存操作的偏序（Partial order），定义了两个事件结果的先后顺序
+> a -> b: a happens before b 或 b happens after a
+
+1. `init` 函数（`init` 的执行是在单个 goroutine 中执行的）
+
+    如果 package **p** 引入了 package **q**，那么 **q** 的 `init` 函数一定 happen before **p** 的 `init` 之前。
+
+2. `go` 语句
+
+    goroutine 的创建 happen before 所有此 goroutine 中的操作；
+
+    goroutine 的销毁 happen after 所有此 goroutine 中的操作；
+
+    ```go
+    func main() {
+        a := "Hello"
+        go func() {
+            fmt.Println(a)
+            a = "olleH"
+            go func(){
+                fmt.Println(a)
+            }()
+
+            go func(){
+                fmt.Println(a)
+            }()
+        }()
+        select{}
+    }    
+    ```
+
+3. channel
+
+    无论是 buffered channel 还是 unbuffered channel，第 n 个 send 一定 happen before 第 n 个 receive 完成；
+
+    对于 capacity 为 m 的 channel，第 n 个 receive 一定 happen before 第 (n+m) send 完成；
+
+    m = 0 unbuffered，第 n 个 receive 一定 happen before 第 n 个 send 完成；
+
+    channel 的 close 一定 happen before receive 端得到通知，得到通知意味着 receive 收到一个因 channel close 的零值；
+
+4. Mutex / RWMutex
+
+    成功的 Unlock 一定 happen before 某个 Lock；
+
+5. Waitgroup
+
+    `wg.Add(n)` 的完成一定 happen before `wg.Wait`
+
+6. Once
+
+    `once.Do()` 方法的执行一定 happen before 任何一个 `once.Do` 方法的返回；
+
+7. Atomic
+
+    * 没有官方的保证
+    * 建议不要依赖 atomic 保证内存的顺序
