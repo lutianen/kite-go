@@ -35,6 +35,9 @@
 - `array` 数组:
 - `slice` 切片:
 - `map` 字典:
+
+    `map` 的 same size grow（等大扩容），指的是通过调整 overflow bucket 中的 key，使得整个 map 中的 bucket 排列更加紧密，减少 overflow bucket 的数量，**map 的 bucket 的数量（overflow bucket 除外）没有变化，且需要做扩容逻辑**。
+
 - `pointer` 指针:
 - `channel` 管道:
 
@@ -1054,6 +1057,8 @@ So("asdf", ShouldNotBeBlank)
 
     每一个 `case` 会被顺序的进行考虑，且当一个匹配成功时，执行相应的语句后就会退出整个 `switch` 语句；**当一个或多个 `case` 类型是接口时，`case` 的顺序非常重要；`default case` 相对其他 `case` 位置是无所谓的，他不会允许落空发生；**
 
+52. `main.main` 函数的执行需要 `runtime.main` 启动一个 goroutine，然后在 M0 主线程中执行。
+
 ### 命令行参数
 
 `os` 包以跨平台的方式，提供了一些与操作系统交互的函数和变量。
@@ -1264,7 +1269,11 @@ gobuf 描述了一个 goroutine 所有现场，当从一个g切换到另一个g�
 
 #### GMP常见问题
 
-- runtime中可以接管的阻塞是通过`gopark`/`goparkunlock`挂起和`goready`恢复，因此只要找到`runtime.gopark`的调用方，就可以知道在哪些地方会被runtime接管了。
+1. runtime中可以接管的阻塞是通过`gopark`/`goparkunlock`挂起和`goready`恢复，因此只要找到`runtime.gopark`的调用方，就可以知道在哪些地方会被runtime接管了。
+
+2. 在某个 goroutine 中调用了 `runtime.LockOSThread()` 方法，直至该 goroutine 退出都没有调用 `runtime.UnlockOSThread()` 方法，会发生什么？
+
+    > 会导致 OS 线程随着 goroutine 的退出而退出；
 
 ### 处理阻塞
 
@@ -1378,3 +1387,19 @@ dlv version
 > Go 语言中的参数和返回值都是由 Caller 提供空间
 
 ## Go Standard Library
+
+...
+
+## 框架
+
+Router
+
+Middleware
+
+Context
+
+《build microservices》
+
+依赖注入是怎么实现的？主要解决了什么问题？
+
+> 为了自动变量绑定，少写一些初始化代码，例如：wire、dig，复杂依赖的初始化比较麻烦，方便测试。

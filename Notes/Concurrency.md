@@ -40,6 +40,8 @@ func (x *Int32) Add(delta int32) (new int32) { return AddInt32(&x.v, delta) }
 2. `atomic` 相关的行为都是乐观锁的模式吗？
 
     > `for` 和 `atomic` 配对来实现无锁算法；`CAS` 可以称为乐观锁。
+    >
+    > 无锁算法一般都有自旋，比如调度里的一些逻辑，本质都是 for 循环套 CAS 一直尝试，在多核竞争激烈的情况下会消耗很多 CPU
 
 ---
 
@@ -217,6 +219,26 @@ func (rw *RWMutex) Unlock() {...}
 * 即使 `f` panic，Once 也认为其执行完成了
 
 > 基于该同步原语可以实现**单例模式**
+>
+> ```go
+> package main
+>
+> import "sync"
+> 
+> var svcOnce sync.Once
+> var svc *Svc
+> 
+> type Svc struct {
+>   Num int
+> }
+> 
+> func GetSvc() *Svc {
+>   svcOnce.Do(func() {
+>       svc = &Svc{Num: 1}
+>   })
+>   return svc
+> }
+> ```
 
 #### 源码实现 `Go 1.22`
 
@@ -274,7 +296,7 @@ func (c *Cond) Broadcast() {...}
 
 ### `sync.Waitgroup`
 
-Waitgroup 等待一组 goroutine 完成（Java CountdownLatch/CyclicBarrier）.
+Waitgroup 等待一组 goroutine 完成（Java CountdownLatch/CyclicBarrier），**Add 一定要在 Wait 之前设置好**.
 
 * `Add` 参数可以是负值，但计数器小于 0 则会 panic
 * 当计数器为 0 时，阻塞在 `Wait` 处的 goroutine 都会被释放
