@@ -26,8 +26,12 @@
 - `byte`: `int8` 的别名
 - `rune`: `int32` 的别名
 
-> 声明格式：`type new_type old_type`
-> 等价于 C++ 中 `using new_type = old_type;`
+- 声明格式：`type new_type old_type` 等价于 C++ 中 `using new_type = old_type;`
+
+- `type HandlerFunc func(wr, *r)` 和 `type HandlerFunc = func(wr, *r)` 有什么区别？
+
+    > 前者是 type alias；
+    > 后者是 type equality，无法定义方法，等号两边完全等价；
 
 ### Unamed Type
 
@@ -636,6 +640,13 @@ ok      github.com/lutianen/gopl/src/testing/word       1.312s
 
 - 提供一个正式的演练场
 
+### 常规测试套路
+
+1. Unit test：pkg、func
+2. 模块测试：脚本，集成在公司内上线的 CI 系统里
+3. 集成测试：脚本，数据可能从线上采集下来的全流程的 case，CI 流程里跑（流量回放之类的技术手段）
+4. QA 手动、负责维护自动化的东西
+
 ## Go Convey 单元测试框架
 
 Go Convey 是一个针对 Go 语言的单元测试框架，可以通过简单的语法完成单元测试的编写，能够自动监控文件修改并启动测试，并可以将测试结果实时输出到 Web 页面，同时提供了丰富的断言函数
@@ -1059,6 +1070,35 @@ So("asdf", ShouldNotBeBlank)
 
 52. `main.main` 函数的执行需要 `runtime.main` 启动一个 goroutine，然后在 M0 主线程中执行。
 
+53. G0 1.21 引入 `clear` 内置函数
+
+    | 调用 | 实参类型 | 结果 |
+    | --- | --- | --- |
+    |`clear(m)`| `map[K]T` | 删除 m 中所有的键值对，得到一个空 map (len(m) == 0). **`clear(m)` 没有释放 key 和 value 占用的内存！**|
+    |`clear(sl)` | `[]T`| 将 `[]T` 中所有元素重置为 T 类型的零值|
+
+54. go.mod/go.work 中 go line 的含义？
+
+    [https://go.googlesource.com/proposal/+/master/design/57001-gotoolchain.md](https://go.googlesource.com/proposal/+/master/design/57001-gotoolchain.md)
+
+    ```go
+    // go.mod
+
+    module demo
+
+    go 1.18
+
+    ...
+    ```
+
+    | 对 go line 的理解 | 正确与否 | 备注 |
+    | --- | --- | --- |
+    | 设置可用于构建 module 代码的 Go 的最小版本 | no | 任何版本的 go compiler 都可以去构建 |
+    | 设定要使用的 Go compiler 的确切版本 | no | 可以使用本地安装的任何版本 go compiler 去构建 |
+    | 用于确定编译器在编译一个特定的源文件时使用的 Go 语言版本 | Yes | 当编译该 module 时，编译器要保证提供 go line 指示的版本的所有 Go 语义 |
+
+    ![GOTOOLCHAIN](./images/GOTOOLCHAIN-setting.png)
+
 ### 命令行参数
 
 `os` 包以跨平台的方式，提供了一些与操作系统交互的函数和变量。
@@ -1089,7 +1129,7 @@ for input.Scan() { // 每次调用 input.Scan() 读取下一行，并移除行�
 
 ## Golang 编译输出可执行文件
 
-```go 
+```go
 package main
 
 import "fmt"
